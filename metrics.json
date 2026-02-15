@@ -1,0 +1,16 @@
+{
+  "train_loss": 0.5114268112182617,
+  "learning_rate": 0.00019047692945441645,
+  "epoch": 0.1830982047221027,
+  "global_step": 5000,
+  "total_steps": 27308,
+  "train_samples": 436922,
+  "base_model": "Qwen/Qwen2.5-7B-Instruct",
+  "lora_rank": 32,
+  "lora_alpha": 64,
+  "adapter_name": "vext-security-7b-v1",
+  "early_stopped": true,
+  "early_stop_reason": "Loss plateaued at ~0.45-0.51 after 5000 steps",
+  "num_gpus": 4,
+  "effective_batch_size": 16
+}
