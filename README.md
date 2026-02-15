@@ -1,9 +1,20 @@
 <p align="center">
-  <img src="assets/vext-wordmark.png" alt="VEXT" width="280"/>
+  <img src="assets/social-preview.png" alt="Vext Labs 7B" width="700">
 </p>
 
 <h1 align="center">Vext-labs-7B-v1.1</h1>
-<p align="center"><strong>The first open-source language model purpose-built for autonomous penetration testing.</strong></p>
+
+<p align="center">
+  <strong>The first open-source language model purpose-built for autonomous penetration testing.</strong>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
+  <img src="https://img.shields.io/badge/Parameters-7B-green" alt="Parameters">
+  <img src="https://img.shields.io/badge/Context-8%2C192_tokens-orange" alt="Context">
+  <img src="https://img.shields.io/badge/Precision-bfloat16-purple" alt="Precision">
+  <img src="https://img.shields.io/github/stars/Vext-Labs-Inc/Vext-labs-7B-v1.1-?style=social" alt="Stars">
+</p>
 
 <p align="center">
   <a href="https://tryvext.com">Website</a> |
@@ -28,6 +39,12 @@ Vext-labs-7B-v1.1 excels at four core security tasks:
 - **Attack Strategy Planning** — Given a target scope and reconnaissance data, determine which tools to run, in what order, and with what parameters
 - **Vulnerability Classification** — Distinguish true positives from false positives with high accuracy, reducing noise for security teams
 - **Remediation Guidance** — Generate actionable fix recommendations for discovered vulnerabilities
+
+### Supported Security Tools
+
+The model understands output from these tools (and more):
+
+`nuclei` · `sqlmap` · `gobuster` · `nmap` · `nikto` · `wfuzz` · `ffuf` · `burpsuite` · `dirsearch` · `hydra` · `john` · `hashcat` · `metasploit` · `wpscan` · `amass` · `subfinder` · `httpx` · `masscan` · `testssl` · `sslscan` · `whatweb` · `wafw00f` · `commix` · `xsstrike` · `dalfox`
 
 ## Quickstart
 
@@ -84,6 +101,23 @@ text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_pr
 inputs = tokenizer(text, return_tensors="pt").to(model.device)
 output = model.generate(**inputs, max_new_tokens=512)
 print(tokenizer.decode(output[0], skip_special_tokens=True))
+```
+
+### CLI Script
+
+> **See [`run.py`](run.py) for a ready-to-go inference script with argument parsing.**
+
+```bash
+pip install -r requirements.txt
+
+# Single prompt
+python run.py --prompt "Analyze this nmap scan: ..."
+
+# From file
+python run.py --prompt-file scan_output.txt
+
+# Interactive mode
+python run.py --interactive
 ```
 
 ## Training
@@ -149,6 +183,17 @@ This model is intended for **authorized security testing only**:
 
 **Do not use this model for unauthorized access to computer systems.**
 
+## Contributing
+
+We welcome contributions! Areas where help is especially appreciated:
+
+- Adding parsing support for additional security tools
+- Improving classification accuracy
+- Sharing evaluation results against new targets
+- Documentation improvements
+
+Please open an issue or submit a pull request.
+
 ## About Vext Labs
 
 [Vext Labs Inc.](https://tryvext.com) builds autonomous security testing agents that combine LLM reasoning with real security tools. Our agents run full penetration tests — from reconnaissance to exploitation to reporting — with human-level decision making.
@@ -167,3 +212,7 @@ Apache 2.0 — See [LICENSE](LICENSE) for details.
   url={https://github.com/Vext-Labs-Inc/Vext-labs-7B-v1.1-}
 }
 ```
+
+---
+
+<p align="center">Built by <a href="https://tryvext.com">Vext Labs Inc.</a></p>
