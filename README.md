@@ -103,7 +103,7 @@ Discoveries automatically spawn follow-up tasks: finding a subdomain triggers HT
 
 ## Swarm Architecture
 
-VEXT doesn't run one agent at a time. It deploys swarms of 70+ specialized agents that work in parallel across a 15-phase pentest methodology:
+VEXT doesn't run one agent at a time. It deploys swarms of specialized agents that work in parallel across a 15-phase pentest methodology:
 
 ```
 PASSIVE RECON → ACTIVE RECON → ENUMERATION → VULNERABILITY SCANNING →
@@ -276,11 +276,14 @@ python run.py --interactive
 | Parameter | Value |
 |-----------|-------|
 | Parameters | 7B |
-| Training steps | 5,000 |
+| Base model | Qwen/Qwen2.5-7B-Instruct |
+| Adapter | LoRA (rank 32, alpha 64) |
+| Training steps | 6,827 |
 | Training samples | 436,922 |
-| Final loss | 0.51 |
+| Final loss | 0.45 |
 | Precision | bfloat16 |
-| Context length | 30,000+ tokens (and growing) |
+| Context length | 32,768 tokens |
+| Inference | vLLM (GPU-accelerated) |
 
 ### Training Data
 
@@ -297,33 +300,65 @@ Data was collected from authorized testing against intentionally vulnerable appl
 
 ## Benchmarks
 
-Results from autonomous penetration testing evaluation across multiple CTF targets. The model drives 3 autonomous agents per target with no human intervention — agents decide which tools to run, interpret results, and report findings.
+Results from continuous autonomous penetration testing across 26 targets. Each run deploys up to 15 specialized agents per target with zero human intervention — agents decide which tools to run, interpret results, classify vulnerabilities, and report findings.
 
-### Validation Results (All Targets)
+### Aggregate Performance
 
 | Metric | Result |
 |--------|--------|
-| Total findings generated | 100 |
-| Validated (true positive) | 17 |
-| False positive rate | 17% |
-| Unique vulnerability types | 15+ |
+| Autonomous runs completed | 306 |
+| Targets tested | 26 |
+| Total findings generated | 1,977 |
+| Validated (true positive) | 139 |
+| Unique vulnerability types | 77 |
+| Unique OWASP categories covered | 8 / 10 |
 
-### Validated Findings Breakdown
+### Validated Findings by Severity
 
-| Severity | Count | Types |
-|----------|-------|-------|
-| CRITICAL | 1 | SQL Injection |
-| HIGH | 7 | XSS (Verified DOM), XSS (Reflected) |
-| MEDIUM | 9 | XSS (Reflected), XSS (Verified DOM), CSRF |
+| Severity | Count | Examples |
+|----------|-------|----------|
+| **CRITICAL** | 6 | SQL Injection (CVE-2022-32028) |
+| **HIGH** | 23 | Local File Inclusion (CVE-2019-6799), Reflected XSS, DOM XSS |
+| **MEDIUM** | 110 | XSS variants, CSRF, GraphQL introspection, info disclosure |
+| **Total** | **139** | |
 
-### Targets Tested
+### Per-Target Results
 
-- **testphp.vulnweb.com** — 17 validated findings (XSS, SQLi)
-- **OWASP Juice Shop** — Autonomous scanning with 25+ tools
-- **bWAPP** — 40+ findings generated
-- **ginandjuice.shop** — 14+ findings generated
+| Target | Type | Runs | Validated | Crit | High | Med |
+|--------|------|------|-----------|------|------|-----|
+| Acunetix TestPHP | External | 57 | 90 | 6 | 10 | 74 |
+| OWASP Juice Shop | CTF | 92 | 26 | — | 13 | 13 |
+| Acunetix REST API | External | 12 | 8 | — | — | 8 |
+| PortSwigger Gin & Juice | External | 211 | 4 | — | — | 4 |
+| tiredful-api | CTF | 8 | 3 | — | — | 3 |
+| dvgql (GraphQL) | CTF | 5 | 3 | — | — | 3 |
+| Cipher (JWT) | CTF | 11 | 2 | — | — | 2 |
+| dvga (GraphQL) | CTF | 4 | 2 | — | — | 2 |
+| Zero Bank | External | 77 | 1 | — | — | 1 |
 
-All testing performed against intentionally vulnerable applications with explicit authorization.
+### Vulnerability Categories
+
+| Category | Validated | Description |
+|----------|-----------|-------------|
+| Injection | 102 | SQL injection, command injection, code injection |
+| Configuration | 20 | Security misconfigurations, exposed admin panels |
+| Information Exposure | 13 | Sensitive data leaks, API key exposure, verbose errors |
+| Other | 4 | CSRF, business logic, access control |
+
+### OWASP Top 10 Coverage
+
+| # | Category | Status |
+|---|----------|--------|
+| A01 | Broken Access Control | Detected |
+| A02 | Cryptographic Failures | Detected |
+| A03 | Injection | Detected (SQLi, XSS, Command Injection) |
+| A04 | Insecure Design | Detected |
+| A05 | Security Misconfiguration | Detected |
+| A06 | Vulnerable Components | Detected (CVE matching) |
+| A07 | Authentication Failures | Detected |
+| A09 | Logging & Monitoring | Detected |
+
+All testing performed against intentionally vulnerable applications and authorized bug bounty targets.
 
 ---
 
