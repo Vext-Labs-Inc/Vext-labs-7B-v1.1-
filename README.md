@@ -28,7 +28,9 @@
 
 ## Overview
 
-**Vext-labs-7B-v1.1** is a 7B parameter LoRA fine-tune of Qwen2.5-7B-Instruct, built by [Vext Labs Inc.](https://tryvext.com) for security testing tasks. It interprets output from 25+ security tools, plans multi-step attack strategies, classifies vulnerabilities, and generates remediation guidance.
+**Vext-labs-7B-v1.1** is the first public release of the Vext model family — a line of language models built by [Vext Labs Inc.](https://tryvext.com) specifically for autonomous penetration testing. This 7B release is the foundation: it interprets output from 25+ security tools, plans multi-step attack strategies, classifies vulnerabilities, and generates remediation guidance.
+
+We're actively building our own model from the ground up. v1.1 is the first public checkpoint, trained on proprietary data from real autonomous agent engagements. Future versions are in active training now, scaling toward our flagship model at 100B+ parameters.
 
 What makes this model different: it's trained on real data from autonomous pentesting agents — not internet scrapes or hand-written examples. The [VEXT](https://tryvext.com) platform runs hybrid agents (each with its own browser, CLI tools, and LLM reasoning loop) against authorized targets. Every tool execution, planning decision, and validated finding from those agents feeds back into the training data. The model improves continuously from real-world engagements.
 
@@ -122,13 +124,11 @@ python run.py --interactive
 
 | Spec | Value |
 |------|-------|
-| Base model | Qwen/Qwen2.5-7B-Instruct |
-| Adapter | LoRA (rank 32, alpha 64) |
 | Parameters | 7B |
 | Context length | 32,768 tokens |
 | Training samples | 436,922 |
-| Training steps | 6,827 |
-| Final loss | 0.45 |
+| Training steps | 5,000 |
+| Final loss | 0.51 |
 | Precision | bfloat16 |
 | Inference | vLLM (GPU-accelerated) |
 
@@ -148,7 +148,19 @@ Data was collected from authorized testing against intentionally vulnerable appl
 
 ### Continuous Improvement
 
-The model improves continuously through an automated feedback loop. Every agent run captures structured training data — LLM inferences, agent decisions, and finding outcomes — each automatically quality-scored on relevance, accuracy, and efficiency. When enough high-quality examples accumulate, LoRA fine-tuning runs automatically on GPU and the updated adapter deploys to production. The model that runs the next pentest is better than the one that ran the last.
+The model improves continuously through an automated feedback loop. Every agent run captures structured training data — LLM inferences, agent decisions, and finding outcomes — each automatically quality-scored on relevance, accuracy, and efficiency. When enough high-quality examples accumulate, fine-tuning runs automatically on GPU and the updated weights deploy to production. The model that runs the next pentest is better than the one that ran the last.
+
+### Model Roadmap
+
+Vext-labs-7B-v1.1 is the beginning, not the end. We're actively training the next generations of the Vext model:
+
+| Version | Status | Details |
+|---------|--------|---------|
+| **v1.1 (7B)** | ✅ Released | This release — 32K context, 436K training samples |
+| **v1.2** | 🔧 In training | Next iteration with expanded training data from ongoing engagements |
+| **Flagship** | 🗺️ Planned | 100B+ parameter model — purpose-built for security from the ground up |
+
+Every pentest our agents run generates new training data. The model compounds — each version is trained on everything the previous versions discovered.
 
 ### Additional Training Sources
 
