@@ -11,201 +11,53 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/Parameters-7B-green" alt="Parameters">
-  <img src="https://img.shields.io/badge/Context-30%2C000%2B_tokens-orange" alt="Context">
+  <img src="https://img.shields.io/badge/Context-32%2C768_tokens-orange" alt="Context">
   <img src="https://img.shields.io/badge/Precision-bfloat16-purple" alt="Precision">
   <img src="https://img.shields.io/github/stars/Vext-Labs-Inc/Vext-labs-7B-v1.1-?style=social" alt="Stars">
 </p>
 
 <p align="center">
   <a href="https://tryvext.com">Website</a> |
-  <a href="#how-it-works-the-hybrid-agent">How It Works</a> |
   <a href="#quickstart">Quickstart</a> |
+  <a href="#what-this-model-does">Capabilities</a> |
   <a href="#benchmarks">Benchmarks</a> |
-  <a href="#self-improving-agents">Self-Improving Agents</a>
+  <a href="#training">Training</a>
 </p>
 
 ---
 
 ## Overview
 
-**Vext-labs-7B-v1.1** is a 7-billion parameter language model created by [Vext Labs Inc.](https://tryvext.com) that serves as the reasoning engine inside fully autonomous penetration testing agents.
+**Vext-labs-7B-v1.1** is a 7B parameter LoRA fine-tune of Qwen2.5-7B-Instruct, built by [Vext Labs Inc.](https://tryvext.com) for security testing tasks. It interprets output from 25+ security tools, plans multi-step attack strategies, classifies vulnerabilities, and generates remediation guidance.
 
-This isn't a chatbot that talks about security. Each agent is a real pentester — it has its own browser, its own CLI, and its own LLM reasoning loop. It navigates web applications, runs real security tools, analyzes the output, decides what to do next, and reports what it finds. No human in the loop.
+What makes this model different: it's trained on real data from autonomous pentesting agents — not internet scrapes or hand-written examples. The [VEXT](https://tryvext.com) platform runs hybrid agents (each with its own browser, CLI tools, and LLM reasoning loop) against authorized targets. Every tool execution, planning decision, and validated finding from those agents feeds back into the training data. The model improves continuously from real-world engagements.
 
-The model powers the [VEXT](https://tryvext.com) platform, where swarms of 70+ concurrent agents execute full penetration tests against authorized targets with zero human intervention.
+## What This Model Does
 
----
+| Capability | Description |
+|---|---|
+| **Tool Output Parsing** | Interprets raw stdout/stderr from 25+ security tools and extracts actionable findings |
+| **Attack Planning** | Given recon data, determines which tools to run next, in what order, and with what parameters |
+| **Vulnerability Classification** | Distinguishes true positives from false positives across scan results |
+| **Remediation Guidance** | Generates actionable fix recommendations for confirmed vulnerabilities |
 
-## How It Works: The Hybrid Agent
+### Supported Tools
 
-Every VEXT agent is a self-contained pentester with three capabilities working together:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    VEXT HYBRID AGENT                        │
-│                                                             │
-│  ┌───────────────┐  ┌──────────────┐  ┌─────────────────┐  │
-│  │  🧠 LLM       │  │  🌐 Browser  │  │  ⚡ CLI Tools   │  │
-│  │  Reasoning    │  │  (Chromium)  │  │  (25+ tools)    │  │
-│  │               │  │              │  │                 │  │
-│  │  Plan attacks │  │  Navigate    │  │  nuclei, nmap   │  │
-│  │  Analyze data │  │  Click/type  │  │  sqlmap, ffuf   │  │
-│  │  Classify     │  │  Screenshot  │  │  amass, httpx   │  │
-│  │  vulns        │  │  Record      │  │  gobuster, ...  │  │
-│  └───────┬───────┘  └──────┬───────┘  └────────┬────────┘  │
-│          │                 │                    │            │
-│          └─────────────────┼────────────────────┘            │
-│                            │                                │
-│                   Observe → Think → Act → Learn              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 🧠 LLM Reasoning
-
-The model is the brain of every agent. It:
-
-- **Interprets raw tool output** — Parses stdout from 25+ security tools and understands what the results mean
-- **Plans multi-step attacks** — Given recon data, determines which tools to run next, in what order, and with what parameters
-- **Classifies vulnerabilities** — Distinguishes true positives from false positives with evidence-based reasoning
-- **Generates remediation** — Produces actionable fix recommendations for confirmed findings
-
-### 🌐 Real Browser
-
-Each agent runs its own Chromium browser instance via Playwright:
-
-- **Full web interaction** — Navigate, click, type into forms, scroll, execute JavaScript
-- **Scope-enforced navigation** — Every URL is validated against the authorized scope before loading
-- **Session recording** — Video, network HAR logs, and Playwright traces captured for every session
-- **Live preview** — Screenshots streamed in real-time to the monitoring dashboard
-
-### ⚡ CLI Security Tools
-
-Agents propose tool executions through a policy-controlled pipeline. Tools run in sandboxed environments with strict argument validation:
+The model understands output from:
 
 `nuclei` · `sqlmap` · `nmap` · `nikto` · `masscan` · `httpx` · `amass` · `gobuster` · `gospider` · `hakrawler` · `ffuf` · `katana` · `subfinder` · `dnsx` · `wpscan` · `sslyze` · `testssl` · `paramspider` · `arjun` · `gau` · `waybackurls` · `wfuzz` · `burpsuite` · `dirsearch` · `hydra` · `whatweb` · `wafw00f` · `commix` · `xsstrike` · `dalfox`
-
-### The Decision Loop
-
-Every agent runs a continuous loop:
-
-```
-1. OBSERVE  → Gather evidence from previous tool runs and browser interactions
-2. THINK    → LLM analyzes findings, identifies gaps, plans next move
-3. ACT      → Propose tool execution or browser action (policy-checked)
-4. LEARN    → Extract discoveries (subdomains, endpoints, vulns) from results
-5. REPORT   → Generate findings with severity ratings and evidence chains
-```
-
-Discoveries automatically spawn follow-up tasks: finding a subdomain triggers HTTP probing, which triggers crawling, which triggers parameter fuzzing, which triggers vulnerability validation — all autonomously.
-
----
-
-## Swarm Architecture
-
-VEXT doesn't run one agent at a time. It deploys swarms of specialized agents that work in parallel across a 15-phase pentest methodology:
-
-```
-PASSIVE RECON → ACTIVE RECON → ENUMERATION → VULNERABILITY SCANNING →
-MANUAL TESTING → EXPLOITATION → POST-EXPLOITATION → REPORTING
-```
-
-Each agent claims tasks from a shared queue using atomic database locking (`SELECT FOR UPDATE SKIP LOCKED`), ensuring no duplicated work even at scale. A yield-based scheduler prioritizes tasks by expected value:
-
-```
-score = (probability_of_finding × impact_weight) / (estimated_time + tool_cost)
-```
-
-Agents specialize into 15 roles — from `API_HUNTER` and `XSS_SPECIALIST` to `IDOR_HUNTER` and `INJECTION` — each tuned for specific vulnerability classes.
-
----
-
-## Self-Improving Agents
-
-The model gets better with every pentest it runs. VEXT implements a complete ML feedback loop:
-
-```
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  AGENT RUNS      │     │  TRAINING DATA   │     │  FINE-TUNING     │
-│                  │     │                  │     │                  │
-│  Every LLM call, │────▶│  Quality scored  │────▶│  LoRA adapters   │
-│  every decision, │     │  and filtered    │     │  trained on GPU  │
-│  every finding   │     │  automatically   │     │  cluster         │
-│                  │     │                  │     │                  │
-└──────────────────┘     └──────────────────┘     └────────┬─────────┘
-                                                           │
-        ┌──────────────────────────────────────────────────┘
-        │
-        ▼
-┌──────────────────┐
-│  DEPLOYMENT      │
-│                  │
-│  Adapters auto-  │
-│  deployed to     │
-│  vLLM → agents   │
-│  improve on next │
-│  run             │
-│                  │
-└──────────────────┘
-```
-
-### What Gets Captured
-
-Every agent run produces structured training data:
-
-| Signal | What's Recorded |
-|--------|----------------|
-| **LLM inferences** | Full prompt, response, tool calls, reasoning, token usage, latency |
-| **Agent decisions** | State snapshot, available tools, chosen action, alternatives considered, confidence |
-| **Finding outcomes** | Validation status (TP/FP), severity, bug bounty payout, discovery path |
-| **Human feedback** | Approved / rejected / modified decisions for RLHF-style improvement |
-
-### Quality Scoring
-
-Each training example is automatically scored across three dimensions:
-
-- **Relevance** — Was the proposed action actually executed?
-- **Accuracy** — Did the execution succeed?
-- **Efficiency** — Did it lead to a real finding?
-
-### Reward Signals
-
-| Event | Reward |
-|-------|--------|
-| Validated finding (true positive) | +1.0 |
-| Critical severity finding | +2.0 |
-| Finding in < 5 tool calls | +0.5 |
-| False positive | -0.5 |
-| Timeout / failure | -1.0 |
-
-### Continuous Training
-
-An automatic scheduler checks every 30 minutes for accumulated high-quality training data. When thresholds are met (100+ scored examples, 7+ days since last training), it launches a LoRA fine-tuning job on the GPU cluster — no manual intervention required. Trained adapters are auto-deployed to the vLLM inference servers, and agents immediately benefit from the improved model on their next run.
-
-### Training Data Sources
-
-In addition to VEXT's own agent runs, the model is trained on:
-
-- **436,922 security testing samples** — Tool execution traces, attack planning decisions, vulnerability classifications
-- **MITRE ATT&CK** — Tactics, techniques, and procedures
-- **NVD CVE database** — 240K+ vulnerability records
-- **HackerOne disclosed reports** — 10K+ public bug bounty reports
-- **OWASP** — Testing guides and cheat sheets
-- **Nuclei templates** — Thousands of vulnerability detection templates
 
 ---
 
 ## Quickstart
 
-### Serving with vLLM
+### Serving with vLLM (recommended)
 
 ```bash
 pip install vllm
 
 vllm serve Vext-Labs-Inc/Vext-labs-7B-v1.1 --trust-remote-code --port 8000
 ```
-
-### Inference
 
 ```python
 import requests
@@ -229,7 +81,7 @@ response = requests.post("http://localhost:8000/v1/chat/completions", json={
 print(response.json()["choices"][0]["message"]["content"])
 ```
 
-### With Transformers (Local)
+### With Transformers
 
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -259,13 +111,8 @@ print(tokenizer.decode(output[0], skip_special_tokens=True))
 ```bash
 pip install -r requirements.txt
 
-# Single prompt
 python run.py --prompt "Analyze this nmap scan: ..."
-
-# From file
 python run.py --prompt-file scan_output.txt
-
-# Interactive mode
 python run.py --interactive
 ```
 
@@ -273,34 +120,49 @@ python run.py --interactive
 
 ## Training
 
-| Parameter | Value |
-|-----------|-------|
-| Parameters | 7B |
+| Spec | Value |
+|------|-------|
 | Base model | Qwen/Qwen2.5-7B-Instruct |
 | Adapter | LoRA (rank 32, alpha 64) |
-| Training steps | 6,827 |
+| Parameters | 7B |
+| Context length | 32,768 tokens |
 | Training samples | 436,922 |
+| Training steps | 6,827 |
 | Final loss | 0.45 |
 | Precision | bfloat16 |
-| Context length | 32,768 tokens |
 | Inference | vLLM (GPU-accelerated) |
 
-### Training Data
+### Where the Training Data Comes From
 
-Trained on security testing data generated by the VEXT autonomous pentesting platform:
+This model is trained on data generated by autonomous pentesting agents — not scraped from the internet and not hand-written. Each training example comes from a real agent session where a hybrid agent (with its own Chromium browser, 25+ CLI tools, and LLM reasoning loop) ran a real penetration test against an authorized target.
 
-- **Tool execution traces** — Input parameters, raw stdout/stderr, parsed results, and exit codes from 25+ security tools
-- **Attack planning decisions** — Which tool to run next, why, and what parameters to use based on current context
-- **Vulnerability validation** — True positive vs false positive classification with supporting evidence chains
-- **Multi-step attack chains** — Full reconnaissance-to-exploitation sequences with reasoning at each step
+The training data includes:
+
+- **Tool execution traces** — Full input/output from 25+ security tools with parsed results and exit codes
+- **Attack planning decisions** — Which tool to run next, why, with what parameters, and what alternatives were considered
+- **Vulnerability validation** — True positive vs false positive classification with evidence chains
+- **Multi-step attack chains** — Full recon-to-exploitation sequences with reasoning at each step
+- **Bug bounty outcomes** — Real-world validation signals including severity ratings and payout data
 
 Data was collected from authorized testing against intentionally vulnerable applications (OWASP Juice Shop, DVWA, bWAPP, WebGoat, and others) and authorized bug bounty targets.
+
+### Continuous Improvement
+
+The model improves continuously through an automated feedback loop. Every agent run captures structured training data — LLM inferences, agent decisions, and finding outcomes — each automatically quality-scored on relevance, accuracy, and efficiency. When enough high-quality examples accumulate, LoRA fine-tuning runs automatically on GPU and the updated adapter deploys to production. The model that runs the next pentest is better than the one that ran the last.
+
+### Additional Training Sources
+
+- **MITRE ATT&CK** — Tactics, techniques, and procedures
+- **NVD CVE database** — 240K+ vulnerability records
+- **HackerOne disclosed reports** — 10K+ public bug bounty reports
+- **OWASP** — Testing guides and cheat sheets
+- **Nuclei templates** — Thousands of vulnerability detection templates
 
 ---
 
 ## Benchmarks
 
-Results from continuous autonomous penetration testing across 26 targets. Each run deploys up to 15 specialized agents per target with zero human intervention — agents decide which tools to run, interpret results, classify vulnerabilities, and report findings.
+Evaluated across 306 autonomous runs against 26 targets. Each run deploys up to 15 agents with zero human intervention — agents decide which tools to run, interpret results, classify vulnerabilities, and report findings.
 
 ### Aggregate Performance
 
@@ -311,7 +173,7 @@ Results from continuous autonomous penetration testing across 26 targets. Each r
 | Total findings generated | 1,977 |
 | Validated (true positive) | 139 |
 | Unique vulnerability types | 77 |
-| Unique OWASP categories covered | 8 / 10 |
+| OWASP categories covered | 8 / 10 |
 
 ### Validated Findings by Severity
 
@@ -336,15 +198,6 @@ Results from continuous autonomous penetration testing across 26 targets. Each r
 | dvga (GraphQL) | CTF | 4 | 2 | — | — | 2 |
 | Zero Bank | External | 77 | 1 | — | — | 1 |
 
-### Vulnerability Categories
-
-| Category | Validated | Description |
-|----------|-----------|-------------|
-| Injection | 102 | SQL injection, command injection, code injection |
-| Configuration | 20 | Security misconfigurations, exposed admin panels |
-| Information Exposure | 13 | Sensitive data leaks, API key exposure, verbose errors |
-| Other | 4 | CSRF, business logic, access control |
-
 ### OWASP Top 10 Coverage
 
 | # | Category | Status |
@@ -362,51 +215,24 @@ All testing performed against intentionally vulnerable applications and authoriz
 
 ---
 
-## Safety Architecture
-
-VEXT enforces defense-in-depth scope controls at every layer:
-
-| Layer | Enforcement |
-|-------|-------------|
-| **Task creation** | Tasks only created for in-scope targets |
-| **LLM proposals** | Agents propose actions through a policy engine — never execute directly |
-| **Tool execution** | Workers validate scope, tool allowlists, and argument allowlists before running |
-| **Browser navigation** | Every URL checked against scope before loading |
-| **Network policy** | Kubernetes egress rules block access to private IP ranges |
-| **Kill switch** | Immediate stop capability — cancels all tasks and aborts all agents |
-
-Tools are tiered by risk level: reconnaissance tools (Tier A) are auto-approved, while active testing tools like sqlmap (Tier B) require explicit approval. All tool arguments are validated against strict allowlists — no arbitrary flags permitted.
-
----
-
 ## Responsible Use
 
 > **⚠️ This model is for authorized security testing only.**
 
-Permitted uses:
-- Penetration testing engagements with explicit written permission
+- Penetration testing with explicit written permission
 - CTF competitions and security training environments
 - Authorized vulnerability research
 - Defensive security analysis
 
 **Do not use this model for unauthorized access to computer systems.**
 
----
-
 ## Contributing
 
-We welcome contributions! Areas where help is especially appreciated:
-
-- Adding parsing support for additional security tools
-- Improving classification accuracy
-- Sharing evaluation results against new targets
-- Documentation improvements
-
-Please open an issue or submit a pull request.
+We welcome contributions — especially around tool parsing support, classification accuracy, evaluation results, and documentation. Open an issue or submit a pull request.
 
 ## About Vext Labs
 
-[Vext Labs Inc.](https://tryvext.com) builds autonomous security testing agents that combine LLM reasoning with real security tools. Our agents run full penetration tests — from reconnaissance to exploitation to reporting — with human-level decision making and zero human intervention.
+[Vext Labs Inc.](https://tryvext.com) builds autonomous penetration testing agents. Our agents combine LLM reasoning with real browsers and security tools to run full pentests — from reconnaissance to exploitation to reporting — with zero human intervention.
 
 ## License
 
